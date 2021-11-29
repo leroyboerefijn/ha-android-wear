@@ -5,10 +5,12 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("kotlin-kapt")
-    id("kotlin-android-extensions")
+    id("kotlin-parcelize")
     id("com.google.firebase.appdistribution")
     id("com.github.triplet.play")
     id("com.google.gms.google-services")
+    kotlin("kapt")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -25,12 +27,6 @@ android {
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
 
         manifestPlaceholders["sentryRelease"] = "$applicationId@$versionName"
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments(mapOf("room.incremental" to "true"))
-            }
-        }
     }
 
     buildFeatures {
@@ -117,6 +113,10 @@ android {
         isAbortOnError = false
         disable("MissingTranslation")
     }
+
+    kapt {
+        correctErrorTypes = true
+    }
 }
 
 play {
@@ -138,16 +138,16 @@ dependencies {
         exclude(group = "org.json", module = "json")
     }
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.31")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.31")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
 
-    implementation("com.google.dagger:dagger:2.39.1")
-    kapt("com.google.dagger:dagger-compiler:2.39.1")
+    implementation("com.google.dagger:hilt-android:2.40.2")
+    kapt("com.google.dagger:hilt-android-compiler:2.40.3")
 
     implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.3.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.1")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("androidx.preference:preference-ktx:1.1.1")
@@ -156,25 +156,19 @@ dependencies {
     implementation("com.google.android.material:material:1.4.0")
 
     implementation("androidx.wear:wear-remote-interactions:1.0.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-rc01")
     implementation("com.google.android.gms:play-services-wearable:17.1.0")
 
-    implementation("androidx.room:room-runtime:2.3.0")
-    implementation("androidx.room:room-ktx:2.3.0")
-    kapt("androidx.room:room-compiler:2.3.0")
-
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.0")
-    implementation("com.squareup.okhttp3:okhttp:4.9.2")
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.picasso:picasso:2.8")
 
     "fullImplementation"("com.google.android.gms:play-services-location:18.0.0")
-    "fullImplementation"("com.google.firebase:firebase-core:19.0.2")
+    "fullImplementation"("com.google.firebase:firebase-core:20.0.0")
     "fullImplementation"("com.google.firebase:firebase-iid:21.1.0")
-    "fullImplementation"("com.google.firebase:firebase-messaging:22.0.0")
-    "fullImplementation"("io.sentry:sentry-android:5.2.4")
+    "fullImplementation"("com.google.firebase:firebase-messaging:23.0.0")
+    "fullImplementation"("io.sentry:sentry-android:5.4.2")
     "fullImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2")
 
-    implementation("androidx.work:work-runtime-ktx:2.7.0")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.webkit:webkit:1.4.0")
 
@@ -183,18 +177,22 @@ dependencies {
     implementation("com.google.android.exoplayer:exoplayer-ui:2.15.1")
     implementation("com.google.android.exoplayer:extension-cronet:2.15.1")
 
-    implementation("androidx.compose.animation:animation:1.0.4")
-    implementation("androidx.compose.compiler:compiler:1.0.4")
-    implementation("androidx.compose.foundation:foundation:1.0.4")
-    implementation("androidx.compose.material:material:1.0.4")
-    implementation("androidx.compose.material:material-icons-core:1.0.4")
-    implementation("androidx.compose.material:material-icons-extended:1.0.4")
-    implementation("androidx.compose.runtime:runtime:1.0.4")
-    implementation("androidx.compose.ui:ui:1.0.4")
-    implementation("androidx.compose.ui:ui-tooling:1.0.4")
-    implementation("androidx.activity:activity-compose:1.3.1")
-    implementation("com.google.android.material:compose-theme-adapter:1.0.4")
-    implementation("com.google.accompanist:accompanist-appcompat-theme:0.20.0")
+    implementation("androidx.compose.animation:animation:1.0.5")
+    implementation("androidx.compose.compiler:compiler:1.0.5")
+    implementation("androidx.compose.foundation:foundation:1.0.5")
+    implementation("androidx.compose.material:material:1.0.5")
+    implementation("androidx.compose.material:material-icons-core:1.0.5")
+    implementation("androidx.compose.material:material-icons-extended:1.0.5")
+    implementation("androidx.compose.runtime:runtime:1.0.5")
+    implementation("androidx.compose.ui:ui:1.0.5")
+    implementation("androidx.compose.ui:ui-tooling:1.0.5")
+    implementation("androidx.activity:activity-compose:1.4.0")
+    implementation("androidx.navigation:navigation-compose:2.4.0-beta02")
+    implementation("com.google.android.material:compose-theme-adapter:1.1.0")
+    implementation("com.google.accompanist:accompanist-appcompat-theme:0.20.2")
+
+    implementation("com.mikepenz:iconics-core:5.3.3")
+    implementation("com.mikepenz:community-material-typeface:6.4.95.0-kotlin@aar")
 }
 
 // Disable to fix memory leak and be compatible with the configuration cache.
