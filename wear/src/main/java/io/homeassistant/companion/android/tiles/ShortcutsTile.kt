@@ -2,7 +2,6 @@ package io.homeassistant.companion.android.tiles
 
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.wear.tiles.ActionBuilders
@@ -21,6 +20,7 @@ import androidx.wear.tiles.ModifiersBuilders
 import androidx.wear.tiles.RequestBuilders.ResourcesRequest
 import androidx.wear.tiles.RequestBuilders.TileRequest
 import androidx.wear.tiles.ResourceBuilders
+import androidx.wear.tiles.ResourceBuilders.IMAGE_FORMAT_RGB_565
 import androidx.wear.tiles.ResourceBuilders.Resources
 import androidx.wear.tiles.TileBuilders.Tile
 import androidx.wear.tiles.TileService
@@ -31,7 +31,7 @@ import com.mikepenz.iconics.IconicsColor
 import com.mikepenz.iconics.IconicsDrawable
 import com.mikepenz.iconics.typeface.library.community.material.CommunityMaterial
 import com.mikepenz.iconics.utils.backgroundColor
-import com.mikepenz.iconics.utils.colorInt
+import com.mikepenz.iconics.utils.colorRes
 import com.mikepenz.iconics.utils.sizeDp
 import dagger.hilt.android.AndroidEntryPoint
 import io.homeassistant.companion.android.R
@@ -103,37 +103,41 @@ class ShortcutsTile : TileService() {
             Resources.Builder()
                 .setVersion(entities.toString())
                 .apply {
-                    entities.map { entity ->
+                    entities.forEach { entity ->
                         // Find icon and create Bitmap
                         val iconIIcon = getIcon(
                             entity.icon,
                             entity.domain,
                             this@ShortcutsTile
                         ) ?: CommunityMaterial.Icon.cmd_bookmark
-                        val iconBitmap = IconicsDrawable(this@ShortcutsTile, iconIIcon).apply {
-                            colorInt = Color.WHITE
+
+                        val icon = IconicsDrawable(this@ShortcutsTile, iconIIcon).apply {
                             sizeDp = iconSize.roundToInt()
                             backgroundColor = IconicsColor.colorRes(R.color.colorOverlay)
-                        }.toBitmap(iconSizePx, iconSizePx, Bitmap.Config.RGB_565)
+                        }
 
-                        // Make array of bitmap
-                        val bitmapData = ByteBuffer.allocate(iconBitmap.byteCount).apply {
-                            iconBitmap.copyPixelsToBuffer(this)
-                        }.array()
+                        for ((state, color) in mapOf("_on" to R.color.colorPrimary, "_off" to R.color.colorOnPrimary)) {
+                            icon.colorRes = color
+                            val iconBitmap = icon.toBitmap(iconSizePx, iconSizePx, Bitmap.Config.RGB_565)
+                            val bitmapData = ByteBuffer.allocate(iconBitmap.byteCount).apply {
+                                iconBitmap.copyPixelsToBuffer(this)
+                            }.array()
 
-                        // link the entity id to the bitmap data array
-                        entity.entityId to ResourceBuilders.ImageResource.Builder()
-                            .setInlineResource(
-                                ResourceBuilders.InlineImageResource.Builder()
-                                    .setData(bitmapData)
-                                    .setWidthPx(iconSizePx)
-                                    .setHeightPx(iconSizePx)
-                                    .setFormat(ResourceBuilders.IMAGE_FORMAT_RGB_565)
+                            // link the entity id to the bitmap data array
+                            addIdToImageMapping(
+                                entity.entityId + state,
+                                ResourceBuilders.ImageResource.Builder()
+                                    .setInlineResource(
+                                        ResourceBuilders.InlineImageResource.Builder()
+                                            .setData(bitmapData)
+                                            .setWidthPx(iconSizePx)
+                                            .setHeightPx(iconSizePx)
+                                            .setFormat(IMAGE_FORMAT_RGB_565)
+                                            .build()
+                                    )
                                     .build()
                             )
-                            .build()
-                    }.forEach { (id, imageResource) ->
-                        addIdToImageMapping(id, imageResource)
+                        }
                     }
                 }
                 .build()
@@ -149,7 +153,7 @@ class ShortcutsTile : TileService() {
         return integrationUseCase.getTileShortcuts().map { SimplifiedEntity(it) }
     }
 
-    fun layout(entities: List<SimplifiedEntity>, showLabels: Boolean): LayoutElement = Column.Builder().apply {
+    suspend fun layout(entities: List<SimplifiedEntity>, showLabels: Boolean): LayoutElement = Column.Builder().apply {
         if (entities.isEmpty()) {
             addContent(
                 LayoutElementBuilders.Text.Builder()
@@ -170,7 +174,7 @@ class ShortcutsTile : TileService() {
     }
         .build()
 
-    private fun rowLayout(entities: List<SimplifiedEntity>, showLabels: Boolean): LayoutElement = Row.Builder().apply {
+    private suspend fun rowLayout(entities: List<SimplifiedEntity>, showLabels: Boolean): LayoutElement = Row.Builder().apply {
         addContent(iconLayout(entities[0], showLabels))
         entities.drop(1).forEach { entity ->
             addContent(Spacer.Builder().setWidth(dp(SPACING)).build())
@@ -179,8 +183,10 @@ class ShortcutsTile : TileService() {
     }
         .build()
 
-    private fun iconLayout(entity: SimplifiedEntity, showLabels: Boolean): LayoutElement = Box.Builder().apply {
+    private suspend fun iconLayout(entity: SimplifiedEntity, showLabels: Boolean): LayoutElement = Box.Builder().apply {
         val iconSize = if (showLabels) ICON_SIZE_SMALL else ICON_SIZE_FULL
+        val realEntity = integrationUseCase.getEntity(entity.entityId)
+        val state = if (realEntity?.state in listOf("on", "locked", "open", "opening")) "_on" else "_off"
         setWidth(dp(CIRCLE_SIZE))
         setHeight(dp(CIRCLE_SIZE))
         setHorizontalAlignment(HORIZONTAL_ALIGN_CENTER)
@@ -211,7 +217,7 @@ class ShortcutsTile : TileService() {
         addContent(
             // Add icon
             LayoutElementBuilders.Image.Builder()
-                .setResourceId(entity.entityId)
+                .setResourceId(entity.entityId + state)
                 .setWidth(dp(iconSize))
                 .setHeight(dp(iconSize))
                 .build()
