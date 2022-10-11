@@ -159,7 +159,7 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.4")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.squareup.picasso:picasso:2.8")
+    implementation("com.squareup.picasso:picasso:2.71828")
 
     "fullImplementation"("com.google.android.gms:play-services-location:20.0.0")
     "fullImplementation"(platform("com.google.firebase:firebase-bom:30.4.1"))
