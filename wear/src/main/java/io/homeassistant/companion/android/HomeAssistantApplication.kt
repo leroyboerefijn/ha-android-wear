@@ -6,6 +6,7 @@ import android.content.IntentFilter
 import dagger.hilt.android.HiltAndroidApp
 import io.homeassistant.companion.android.complications.ComplicationReceiver
 import io.homeassistant.companion.android.sensors.SensorReceiver
+import io.homeassistant.companion.android.tiles.TileActionReceiver
 
 @HiltAndroidApp
 open class HomeAssistantApplication : Application() {
@@ -26,12 +27,14 @@ open class HomeAssistantApplication : Application() {
             }
         )
 
-        // Update complications when the screen is on
+        // Update complications and shortcut tile when the screen is on
         val complicationReceiver = ComplicationReceiver()
+        val tileActionReceiver = TileActionReceiver()
 
         val screenIntentFilter = IntentFilter()
         screenIntentFilter.addAction(Intent.ACTION_SCREEN_ON)
 
         registerReceiver(complicationReceiver, screenIntentFilter)
+        registerReceiver(tileActionReceiver, screenIntentFilter)
     }
 }

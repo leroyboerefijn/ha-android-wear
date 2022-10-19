@@ -8,9 +8,14 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.content.getSystemService
+import androidx.wear.tiles.TileService
 import dagger.hilt.android.AndroidEntryPoint
 import io.homeassistant.companion.android.common.data.integration.IntegrationRepository
 import io.homeassistant.companion.android.home.HomePresenterImpl
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
@@ -20,9 +25,19 @@ class TileActionReceiver : BroadcastReceiver() {
     @Inject
     lateinit var integrationUseCase: IntegrationRepository
 
-    override fun onReceive(context: Context?, intent: Intent?) {
-        val entityId: String? = intent?.getStringExtra("entity_id")
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    companion object {
+        const val TILE_ACTION = "io.homeassistant.companion.android.TILE_ACTION"
+    }
+    override fun onReceive(context: Context?, intent: Intent?) {
+        when (intent?.action) {
+            TILE_ACTION -> onTileAction(context, intent.getStringExtra("entity_id"))
+            Intent.ACTION_SCREEN_ON -> onScreenOn(context)
+        }
+    }
+
+    private fun onTileAction(context: Context?, entityId: String?) {
         if (entityId != null) {
             runBlocking {
                 if (integrationUseCase.getWearHapticFeedback()) {
@@ -55,7 +70,28 @@ class TileActionReceiver : BroadcastReceiver() {
                     serviceName,
                     hashMapOf("entity_id" to entityId)
                 )
+
+                if (domain in HomePresenterImpl.toggleDomains.plus("lock")) {
+                    // The state has changed because of the service call
+                    updateShortcutTile(context)
+                }
             }
+        }
+    }
+
+    private fun onScreenOn(context: Context?) {
+        scope.launch {
+            if (!integrationUseCase.isRegistered()) {
+                return@launch
+            }
+            updateShortcutTile(context)
+        }
+    }
+
+    private fun updateShortcutTile(context: Context?) {
+        if (context != null) {
+            TileService.getUpdater(context.applicationContext)
+                .requestUpdate(ShortcutsTile::class.java)
         }
     }
 }
